@@ -18,7 +18,30 @@ connectCloudinary()
 
 // middlewares
 app.use(express.json())
-app.use(cors())
+
+// CORS configuration for Vercel
+const allowedOrigins = [
+  'https://appointy-frontend.vercel.app',
+  'https://appointy-admin.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  process.env.FRONTEND_URL,
+  process.env.ADMIN_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}))
 
 // api endpoints
 app.use('/api/admin', adminRouter)
@@ -41,4 +64,11 @@ app.get('/test-db', (req, res) => {
 });
 
 
-app.listen(port, () => console.log(`Server started on PORT:${port}`))
+// For Vercel serverless
+if (process.env.VERCEL) {
+  // Don't call app.listen() on Vercel
+  module.exports = app;
+} else {
+  // Local development
+  app.listen(port, () => console.log(`Server started on PORT:${port}`))
+}
